@@ -1,4 +1,4 @@
-**“Creating a Static Website for the Café”** lab, along with the key tasks and best practices implemented. I’ve summarized it so it’s easier to follow and understand what you accomplished:
+**Creating a Static Website for the Café** lab, along with the key tasks and best practices implemented. I’ve summarized it so it’s easier to follow and understand what you accomplished:
 
 
 ## **Scenario**
