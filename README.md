@@ -1,7 +1,8 @@
 
+# ALX AWS Academy – Cloud Architecting Capstone Project
+
 Here’s a **summary README** for your repo based on all the files you listed, with a **cloud computing and AWS focus**:
 
-# ALX AWS Academy – Cloud Architecting Capstone Project
 
 ## Overview
 
