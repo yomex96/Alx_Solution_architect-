@@ -1,7 +1,3 @@
-Got it ✅
-Here’s the full lab written in clean **Markdown (`.md`) format** so it can be easily used as documentation, GitHub README, or study notes.
-
----
 
 # Guided Lab: Securing Applications by Using Amazon Cognito
 
