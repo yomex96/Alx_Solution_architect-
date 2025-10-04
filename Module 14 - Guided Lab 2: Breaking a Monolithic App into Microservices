@@ -1,1170 +1,268 @@
-Guided Lab: Breaking a Monolithic Node.js Application into Microservices
- 
+ **concise, organized Markdown version** of your lab guide so far. I’ve structured it for clarity, keeping headings, subheadings, and step sequences intact for easy reading and reference. You can continue adding Task 6 steps similarly.
 
-Overview
-Traditional monolithic architectures are hard to scale. As an application's code base grows, it becomes complex to update and maintain. Introducing new features, languages, frameworks, and technologies becomes challenging, which limits innovation and new ideas.
+# Guided Lab: Breaking a Monolithic Node.js Application into Microservices
 
-Within a microservices architecture, each application component runs as its own service and communicates with other services through a well-defined API. Microservices are built around business capabilities, and each service performs a single function. Microservices can be written by using different frameworks and programming languages, and you can deploy them as individual services, as a single service, or as a group of services.
+## Overview
 
-In this lab, you migrate a monolithic application that runs in a standard Node.js server to a containerized Docker environment. You then refactor the application into microservices and deploy it to a containerized environment orchestrated by Amazon Elastic Container Service (Amazon ECS). The Node.js application implements the functions of a message board where users can create topic threads and post messages on each thread.
+Traditional monolithic architectures are hard to scale. As an application's code base grows, it becomes complex to maintain, limiting innovation. Microservices architecture breaks the application into separate services, each running independently and communicating through a defined API.
 
-The following diagram illustrates the evolution of the application's design as it moves from monolithic to microservices based.
+In this lab, you will:
 
-The following image shows differences between a monolithic versus mocroservice based architecture
+* Migrate a monolithic Node.js application to a Docker container.
+* Refactor it into microservices.
+* Deploy it to Amazon ECS.
 
-The diagram highlights the following differences between the monolithic approach and the microservices design:
+**Application:** Message board where users create threads and post messages.
 
-In a monolithic design, all of the functions of the Node.js application are packaged and run as a single service. If one function fails, the entire application fails. Likewise, if one application function experiences a spike in demand, all functions in the service must be scaled together.
+---
 
-In a microservices architecture, each function of the Node.js application runs as a separate service. The services can scale and be updated independently of each other.
+## Objectives
 
-Objectives
-After completing this lab, you will be able to do the following:
+By the end of this lab, you will be able to:
 
-Migrate a monolithic Node.js application to run in a Docker container.
+1. Migrate a monolithic Node.js application to run in a Docker container.
+2. Refactor a Node.js application to a microservices architecture.
+3. Deploy a containerized Node.js microservices application to Amazon ECS.
 
-Refactor a Node.js application from a monolithic design to a microservices architecture.
+**Duration:** ~2 hours
 
-Deploy a containerized Node.js microservices application to Amazon ECS.
+---
 
-Duration
-This lab requires approximately 2 hours to complete.
+## Accessing the AWS Management Console
 
- 
+1. Choose **Start Lab** at the top of instructions.
+2. Wait for the AWS Details panel to show a green circle (ready status).
+3. Open the **AWS Management Console** via the link in the top-left corner.
 
-Accessing the AWS Management Console
-At the top of these instructions, choose  Start Lab.
+---
 
-The lab session starts.
+## Task 1: Preparing the Development Environment
 
-A timer displays at the top of the page and shows the time remaining in the session.
+1. Open **AWS Cloud9** using the Cloud9 URL from the lab details.
+2. Download and extract the lab files:
 
- Tip: To refresh the session length at any time, choose  Start Lab again before the timer reaches 0:00.
-
-Before you continue, wait until the circle icon to the right of the AWS  link in the upper-left corner turns green. When the lab environment is ready, the AWS Details panel displays.
-
-To connect to the AWS Management Console, choose the AWS link in the upper-left corner above the terminal window.
-
-A new browser tab opens and connects you to the console.
-
- Tip: If a new browser tab does not open, a banner or icon is usually at the top of your browser with a message that your browser is preventing the site from opening pop-up windows. Choose the banner or icon, and then choose Allow pop-ups.
-
-Arrange the AWS Management Console tab so that it displays alongside these instructions. Ideally, you have both browser tabs open at the same time so that you can follow the lab steps.
-
- 
-
-Task 1: Preparing the development environment
-An AWS Cloud9 environment has been created for you as part of the creation process for the lab environment. AWS Cloud9 is a cloud-based integrated development environment (IDE) that you can use to write, run, and debug code with just a browser. It comes prepackaged with essential tools for popular programming languages and provides access to the AWS Command Line Interface (AWS CLI) in a terminal session tab. Your AWS Cloud9 environment has access to the all of the Amazon Web Services (AWS) resources authorized for the user ID with which you signed in to the AWS Management Console.
-
-To set up your development environment, you open the AWS Cloud9 IDE, and download and extract the required lab files.
-
-At the top of these instructions, choose AWS Details, and copy the value of Cloud9url.
-
-To open the AWS Cloud9 development environment, open a new browser tab, and paste the value of Cloud9url.
-
-Next, you download and extract the required lab files.
-
-In the bottom pane of the IDE, in the terminal tab labeled bash - "ip-nnn-nnn-nnn-nnn", run the following command:
-
+```bash
 curl -s https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/CUR-TF-200-ACACAD-3-113230/19-lab-mod14-guided-ECS/s3/lab-files-ms-node-js.tar.gz | tar -zxv
-This command retrieves a compressed archive file containing the lab files and extracts its contents in the AWS Cloud9 ~/environment folder. The downloaded and extracted files are visible in the left pane.
+```
 
-Image shows Cloud9 folder structure
+**Cloud9 Folder Structure:**
 
-In the left pane, you should see the following folders:
+* `1-no-container`: Monolithic app for standard Node.js server.
+* `2-containerized-monolith`: Monolithic app ready for Docker.
+* `3-containerized-microservices`: Refactored microservices version.
 
-1-no-container: This folder contains the files related to the monolithic implementation of the application intended to run directly on a Node.js server.
+---
 
-2-containerized-monolith: This folder contains the files related to the monolithic implementation of the application intended to run in a Docker-containerized environment orchestrated by Amazon ECS.
+## Task 2: Running the Application on a Basic Node.js Server
 
-3-containerized-microservices: This folder contains the files related to the microservices implementation of the application intended to run in a Docker-containerized environment orchestrated by Amazon ECS.
+### Task 2.1: Installing Required Node.js Modules
 
- You use the AWS Cloud9 IDE tab frequently throughout this lab, so keep this tab open.
-
- 
-
-Task 2: Running the application on a basic Node.js server
-The base Node.js application is a monolithic service that has been designed to run directly on a server without a container. In this task, you deploy the application to the Node.js server that is installed on the instance running your AWS Cloud9 environment. You then test the application by using the command line terminal to invoke its Representational State Transfer (RESTful) API methods.
-
-The following diagram illustrates the deployment architecture and request flow.
-
-Following diagram shows the applications installed on an EC2 instance in a monolithic Architecture
-
- 
-
-The monolithic implementation of the application uses the Node.js cluster functionality to spawn one worker process for each CPU core. The processes share a single port and are invoked in a round-robin fashion by the load balancer built into Node.js. This feature increases scalability on servers that have multiple CPU cores.
-
-In this task, you do the following:
-
-Install the Node.js modules required by the application.
-
-Review the application design and code.
-
-Run the application.
-
-Task 2.1: Installing the required Node.js modules
-The message board application uses two modules from the Node.js koa framework in its implementation: koa and koa-router. Koa.js is a widely used Node.js web application framework that facilitates the building of asynchronous server-side JavaScript applications.
-
-In the AWS Cloud9 IDE terminal, to install the koa and koa-router modules, enter the following commands:
-
+```bash
 cd ~/environment/1-no-container
-npm install koa
-npm install koa-router
-Note: You see output similar to the following, number of packages installed may slightly differ.
+npm install koa koa-router
+```
 
-Image shows the output after running earlier commands
+* Installed modules are in `node_modules`.
 
-The modules are downloaded and installed in the 1-no-container/node_modules folder of the AWS Cloud9 ~/environment folder. You can ignore the notice, warnings, and update messages displayed in the output.
+---
 
-Task 2.2: Reviewing the application design and code
-The components that implement the monolithic message board application are contained in the 1-no-container folder. Review them to gain an understanding of the application design and code.
+### Task 2.2: Reviewing Application Design and Code
 
-In the AWS Cloud9 IDE terminal, in the left pane, expand the 1-no-container folder. The components of the application consist of the following:
+**Files to review in `1-no-container`:**
 
-node_modules: This folder was created when you installed the required JavaScript modules in the previous sub-task and contains their source code.
+* `node_modules` – installed modules
+* `db.json` – simulated database (users, threads, posts)
+* `index.js` – application entry point, handles cluster setup
+* `package.json` – dependencies and entry point
+* `server.js` – RESTful API definitions
 
-db.json: This item is a JSON object that simulates the message board database. It contains attributes representing users, threads, and posts with corresponding sample values.
+**API endpoints (server.js):**
 
-index.js: This item is the JavaScript program that is the application's entry point.
+| Method | Endpoint                       | Description                     |
+| ------ | ------------------------------ | ------------------------------- |
+| GET    | /api/users                     | List all users                  |
+| GET    | /api/users/:userId             | Get specific user info          |
+| GET    | /api/threads                   | List all threads                |
+| GET    | /api/threads/:threadId         | Get specific thread info        |
+| GET    | /api/posts/in-thread/:threadId | List posts in a thread          |
+| GET    | /api/posts/by-user/:userId     | List posts by user              |
+| GET    | /api/                          | "API ready to receive requests" |
+| GET    | /                              | "Ready to receive requests"     |
 
-package-lock.json: This item is a JSON object that was automatically generated when you installed the required JavaScript modules in the node_modules folder. It is used by the npm installation utility to keep track of modifications made to the folder.
+---
 
-package.json: This item is a JSON object describing the application, its entry point, and its dependencies.
+### Task 2.3: Running the Application
 
-server.js: This item is the JavaScript program that defines the application's RESTful API methods and implements their respective handlers.
-
-Next, you examine the package.json object. 
-
-In the left pane, double-click package.json to open it in an editor tab. Notice the following attributes of the JSON object:
-
-Lines 2–5: The dependencies attribute defines the JavaScript module dependencies for the application. Note that the koa and koa-router modules that you installed in the previous sub-task are listed here.
-
-Lines 6–8: The scripts attribute indicates that the index.js program is the entry point to the application.
-
-Next, you examine the db.json object. 
-
-In the left pane, double-click db.json to open it in an editor tab. Notice the following attributes of the JSON object:
-
-Lines 2–27: These lines define a users attribute that represents the registered users of the message board. The attribute value is a list of four sample users with the following names: Marcerline Singer, Finn Alberts, Paul Barium, and Jake Storm.
-
-Lines 29–45: These lines define a threads attribute that represents the current active threads on the message board. The attribute value is a list of three sample threads with the following titles:
-
-Did you see the Brazil game?
-
-New French bakery opening in the neighborhood tomorrow
-
-In search of a new guitar
-
-Lines 47–78: These lines define a posts attribute that represents the posted messages on the active threads. The attribute value is a list of six sample message posts.
-
- Next, you review the code for the index.js object. 
-
-In the left pane, double-click index.js to open it in an editor tab. Notice the following attributes:
-
-Lines 1–3: These lines import the JavaScript modules that the program requires, specifically, cluster, http, and os.
-
-Line 3: This line uses the os JavaScript module to check the number of CPU cores available on the server.
-
-Lines 5 through 15: These lines are run the first time that the program is invoked (when the application is started). They create one leader thread for the cluster and one worker thread for each CPU core available on the server.
-
-Lines 16–19: These lines handle each request to the application by invoking the server.js program in the current worker thread.
-
- Lastly, you review the code for the server.js object. 
-
-In the left pane, double-click server.js to open it in an editor tab. Use the comments provided in the code to facilitate your understanding of the logic. In particular, notice the following:
-
-Line 3: This line imports the JSON object (db.json) that simulates the database.
-
-Lines 6–11: These lines define a generator function that gets run for every request. Its purpose is to print a line containing the HTTP method, resource path URL, and elapsed time for each request that is processed.
-
-Lines 13–47: These lines define the application's RESTful API methods and their implementation. Specifically, the application can respond to the following RESTful calls:
-
-GET /api/users returns the collection of users in the database.
-
-GET /api/users/:userId returns the information for the user identified by :userId.    
-
-GET /api/threads returns the collection of threads in the database.
-
-GET /api/threads/:threadId returns the information for the thread identified by :threadId.
-
-GET /api/posts/in-thread/:threadId returns the collection of post messages for the thread identified by :threadId.
-
-GET /api/posts/by-user/:userId returns the collection of post messages for the user identified by :userId.
-
-GET /api/ returns the message "API ready to receive requests."
-
-GET / returns the message "Ready to receive requests."
-
-Line 52: This line defines the port number on which the application is listening for requests.
-
-Task 2.3: Running the application
-In this task, you start the Node.js server and run the message board application. You then test some of its RESTful API methods.
-
-In the terminal tab, to start the Node.js server and the application, enter the following command:
-
+```bash
 npm start
-[Images shows running status of the node server]
+```
 
-The server is started, and the application's entry point, index.js, is started. The first time it is invoked, index.js creates two cluster threads—Leader and Worker—to process requests.
+* Opens server on port `3000`.
+* Open a second terminal tab to test endpoints:
 
-Next, you need to keep the current terminal session active and open a second terminal tab to test the application's RESTful API.
-
-In the bottom pane, choose (+), and choose New Terminal to open a new terminal tab. You now have two terminals in which you can enter commands.
-
-In the right terminal tab, to retrieve the /api/users resource, enter the following command:
-
+```bash
 curl localhost:3000/api/users
-The RESTful invocation returns a JSON object containing the list of users in the message board database.
-
-Image shows result of the earlier query 
-
-Choose the left terminal tab. You see the message that is output from server.js indicating that it has processed a GET method request on the resource identified by the path /api/users. The request took 4 milliseconds to process.
-
-Image shows the API invoked when users query was run
-
-Similarly, you retrieve information about threads, posts etc and observe the output and the messages in left terminal tab.  
-
-Retrieve information about 4th user: In the right terminal tab, enter the following command:
-
 curl localhost:3000/api/users/4
-The information for Jake Storm, the fourth user in the database, is returned:
-
-Retrieve threads: In the right terminal tab, enter the following command:
-
 curl localhost:3000/api/threads
-Retrieve thread 1 : In the right terminal tab, enter the following command:
-
 curl localhost:3000/api/posts/in-thread/1
-Now you stop the Node.js server. 
+```
 
-In the left terminal tab, press Ctrl+C to shut down the server process.
+* Stop server: `Ctrl+C` in the first terminal.
 
-You have validated that the application responds properly to RESTful GET requests and can now proceed to containerize it.
+---
 
- 
+## Task 3: Containerizing the Monolith for Amazon ECS
 
-Task 3: Containerizing the monolith for Amazon ECS
-Containers wrap application code in a unit of deployment that captures a snapshot of the code and its dependencies. They can help ensure that applications deploy quickly, reliably, and consistently regardless of the deployment environment.
+### Task 3.1: Preparing the Application
 
-In this task, you build a container image for the monolithic message board application and push it to Amazon Elastic Container Registry (Amazon ECR). These steps are in preparation for deploying the application to Amazon ECS.
+* Remove Node.js cluster usage; convert to single process.
+* Entry point changed to `server.js`.
+* Review `Dockerfile` in `2-containerized-monolith`:
 
-Specifically, you perform the following steps:
+```dockerfile
+FROM node:alpine
+WORKDIR /srv
+ADD . /srv
+RUN npm install
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
 
-Prepare the application for Docker containerization.
+---
 
-Provision a repository.
+### Task 3.2: Provisioning an Amazon ECR Repository
 
-Build and push the Docker image to the repository.
+1. Open **Elastic Container Registry** in AWS Console.
+2. Create repository `mb-repo` (Private).
 
-Task 3.1: Preparing the application for Docker containerization
-To put the message board application into a Docker container, you need to make the following changes to the application:
+---
 
-Remove the use of the Node.js cluster feature, and convert the application to a single process design. With Docker containers, the goal is to run a single process for each container rather than a cluster of processes.
+### Task 3.3: Building and Pushing the Docker Image
 
-Create a Docker file for the application. This file is a build script that contains instructions on how to build a container image for the application.
+```bash
+# Authenticate Docker with ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
 
-The 2-containerized-monolith folder of your AWS Cloud9 environment includes a container-ready version of the application. In this task, you review the files so that you understand the changes that were made to prepare the application for containerization.
-
-In the left pane, expand the 2-containerized-monolith folder, and double-click package.json to open it in an editor tab. 
-
-Notice in line 7 that the entry point into the application has been changed from index.js to server.js. The index.js file is no longer present in the application folder because it contains the initialization logic for the Node.js cluster feature, which you are no longer using.
-
-In the left pane, in the 2-containerized-monolith folder, double-click server.js to open it in an editor tab. 
-
-The only difference between this object and the non-containerized version is the addition of line 54, which prints the message "Worker started" when the application is first started.
-
-In the left pane, in the 2-containerized-monolith folder, double-click Dockerfile to open it in an editor tab. 
-
-This file contains the instructions on how to build the container image for the application.
-
-Image shows a section of the file as mentioned in earlier instructions
-
-Notice the following:
-
-Line 1: The base image on which the container image is to be built is alpine-node, which is a Node.js image.
-
-Line 3: This line sets the working directory of the filesystem on the image to /srv.
-
-Line 4: This line adds the contents of the 2-containerized-monolith folder (the application folder) to the current working directory of the file system of the image (set in the previous line).
-
-Line 5: This line invokes the npm install command to install all of the application's library dependencies declared in the package.json file.
-
-Line 7: This line informs Docker that the container listens on port 3000 at runtime.
-
-Line 8: This line asks Docker to run the node server.js command, which starts the application when the image is started.
-
-Now that you understand how the container image for the application will be built, you look at where to put the image once it is built.
-
-Task 3.2: Provisioning the repository
-Docker container images are intended to be stored in a repository for sharing, version control, and convenient management purposes. Developers can use the Amazon ECR service to store, manage, and deploy Docker container images. In addition, Amazon ECR is integrated with Amazon ECS, allowing Amazon ECS to pull container images directly for production deployments.
-
-In this sub-task, you create a repository in Amazon ECR to house the container image for the message board application.
-
-On the AWS Management Console, in the search box, enter and choose Elastic Container Registry
-
-In the Create a repository section, choose Get Started.
-
-If you are shown the options menu under the Repositories menu, choose hyperlink Private repositores
-
-For the Repository name enter mb-repo
-
-Note: Ensure that under Visibility settings, Private is chosen.
-
-Choose Create repository.
-
-A message is displayed at the top of the page indicating that the repository was successfully created. 
-
-Task 3.3: Building and pushing the Docker image
-You are now ready to build the container image for the application and push it to the Amazon ECR repository that you just created.
-
-One of the useful features of the Amazon ECR console is that it provides ready-to-use command templates to build and push an image to the new repository that you just created. You use these provided AWS CLI commands in the next steps.
-
-In the message window at the top of the page, choose View push commands. 
-
-A pop-up window titled Push commands for mb-repo opens. This window lists four AWS CLI commands that are customized for the mb-repo and purposely built to do the following:
-
-Authenticate your Docker client to your Amazon ECR registry.
-
-Build your Docker image.
-
-Tag your Docker image.
-
-Push you Docker image to the repository.
-
-Notice also that the pop-up window offers two versions of the commands: macOS/Linux and Windows. 
-
-Make sure that the macOS/Linux tab is selected because you are going to run these commands in your AWS Cloud9 environment.
-
-First, you copy and run the command to log your Docker client in to your registry.
-
-In the pop-up window, for the first command, choose the Copy icon to copy it to the clipboard. The command looks like the following:
-
-$  (aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin NNNNNNNNNNNN.dkr.ecr.us-east-1.amazonaws.com)
-
-Switch to the Cloud9-IDE - AWS Cloud9 browser tab.
-
-Paste the copied command into the left terminal tab, and press Enter to run the command.
-
-If the command completes successfully, it returns the message "Login Succeeded." You can ignore the displayed warnings.
-
-Next, you build the Docker image for your application.
-
-Note: When a specific terminal tab is not mentioned in an instruction step, use the left terminal tab.
-
-In the terminal tab, to change the directory to the 2-containerized-monolith folder, enter the following command:
-
+# Build image
 cd ~/environment/2-containerized-monolith
-Switch to the Elastic Container Registry browser tab.
-
-In the pop-up window, for the second command, choose the Copy icon to copy it to the clipboard. The command looks like the following:
-
 docker build -t mb-repo .
 
-Note: Make sure to include the period at the end of the command.
+# Tag image
+docker tag mb-repo:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-repo:latest
 
-Switch to the Cloud9-IDE - AWS Cloud9 browser tab.
+# Push to ECR
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-repo:latest
+```
 
-Paste the copied command into the terminal tab, and press Enter to run the command:
+* Verify image in ECR; copy the **image URI**.
 
-The build command produces a lot of output as it runs the instructions contained in the application's Docker file. When it is finished, you see the message.. 
+---
 
-Building 8.0s (9/9) FINISHED~
+## Task 4: Deploying the Monolith to Amazon ECS
 
-Next, you tag the image with the repository URI so that it can be pushed to the repository.
+### Task 4.1: Creating an ECS Cluster
 
-Switch to the Elastic Container Registry browser tab.
+* Cluster name: `mb-ecs-cluster`
+* EC2 instances: 2 × t2.medium, Amazon Linux 2023
+* Network: Lab VPC, public subnets, existing ECSSG security group
 
-In the pop-up window, for the third command, choose the Copy icon to copy it to the clipboard. The command looks like the following:
+---
 
-docker tag mb-repo:latest NNNNNNNNNNN.dkr.ecr.us-east-1.amazonaws.com/mb-repo:latest
+### Task 4.2: Creating a Task Definition
 
-Switch to the Cloud9-IDE - AWS Cloud9 browser tab.
+* Task definition family: `mb-task`
+* Launch type: EC2, CPU: 0.5 vCPU, Memory: 1GB
+* Container: `mb-container`, port 3000, image URI from ECR
 
-Paste the copied command into the terminal tab, and press Enter to run the command:
+---
 
-If the command completed successfully, it does not return anything.
+### Task 4.3: Creating and Deploying the Service
 
-Finally, you push the container image to the application's repository.
+* Service name: `mb-ecs-service`
 
-Switch to the Elastic Container Registry browser tab.
+* Launch type: EC2
 
-In the pop-up window, for the fourth command, choose the Copy icon to copy it to the clipboard. The command looks like the following:
+* Load balancer: Application Load Balancer, new target group `mb-target`
 
-docker push NNNNNNNNNNNN.dkr.ecr.us-east-1.amazonaws.com/mb-repo:latest
+* Copy load balancer **DNS name** for testing.
 
-Switch to the Cloud9-IDE - AWS Cloud9 browser tab.
+---
 
-Paste the copied command into the terminal tab, and press Enter to run the command:
+### Task 4.4: Testing the Containerized Monolith
 
-The command outputs several messages as each layer of the image is pushed to the repository.
+* Test REST API via browser:
 
-Next, you verify that the image was successfully uploaded.
+```
+http://<DNS-name>/api
+http://<DNS-name>/api/users
+http://<DNS-name>/api/threads
+http://<DNS-name>/api/posts/in-thread/2
+```
 
-Switch to the Elastic Container Registry browser tab.
+---
 
-In the Push commands for mb-repo pop-up window, choose Close.
+## Task 5: Refactoring the Monolith
 
-In the Repositories list, choose mb-repo. 
+* Break monolithic app into **microservices**:
 
-In the images list, you see the container image that you pushed, which is identified by the latest tag.
+  * Users: `/api/users/*`
+  * Threads: `/api/threads/*`
+  * Posts: `/api/posts/*`
 
-Image shows the repository details
+### Task 5.1: Reviewing the Microservices Application
 
-Next, you record the image URI. 
+* `3-containerized-microservices/` folder contains:
 
-In the Images list, next to Copy URI, choose the Copy icon. Paste the value in a text editor. You use it in a subsequent step.
+  * `users/`
+  * `threads/`
+  * `posts/`
+* Only `server.js` differs in each microservice, containing relevant REST handlers.
 
-Great job! You have successfully created a container image for the message board application and pushed it to an Amazon ECR repository.
+---
 
- 
+### Task 5.2: Provisioning ECR Repositories for Microservices
 
-Task 4: Deploying the monolith to Amazon ECS
-In this task, you deploy the containerized monolithic application to an Amazon ECS runtime environment. Specifically, you use Amazon ECS to create a managed cluster of Amazon Elastic Compute Cloud (Amazon EC2) instances on which to deploy your application container image. The cluster is configured as the target group of an Application Load Balancer to provide failover and scalability.
+* `mb-users-repo`
+* `mb-threads-repo`
+* `mb-posts-repo`
 
-The following diagram shows the deployment architecture of the containerized monolithic application. It also displays the resources that you create in this task.
+---
 
-Image shows the monolithic architeciture of the application on the container before refactoring
+### Task 5.3: Building and Pushing Images for Each Microservice
 
-In this task, you perform the following steps:
+#### Users Microservice
 
-Create an Amazon ECS cluster.
-
-Create a task definition for the application container image.
-
-Deploy the monolithic application as an Amazon ECS service.
-
-Test the containerized monolithic application.
-
-Task 4.1: Creating an Amazon ECS cluster
-An Amazon ECS cluster is a logical grouping of EC2 instances on which you can run tasks or services representing your containerized application.
-
-In this sub-task, you create an Amazon ECS cluster by using the Amazon ECS console. The console's cluster creation wizard facilitates the creation of all of the infrastructure components needed to create the Amazon ECS cluster environment, including the virtual private cloud (VPC), subnets, security groups, internet gateway, and AWS Identity and Access Management (IAM) roles.
-
-On the AWS Management Console, in the search box, enter and select Elastic Container Service 
-
-From the left menu, choose Clusters.
-
-Choose Create cluster, and configure the following options:
-
-In the Cluster configuration section, for the Cluster name, enter mb-ecs-cluster
-
-In the Infrastructure section, select Amazon EC2 instances, and configure the following options:
-
-Leave the Auto Scaling group (ASG) settings at defaults.
-
-For Operating system/Architecture, choose Amazon Linux 2023.
-
-For EC2 instance type, choose t2.medium.
-
-For Desired capacity, for Minimum and Maximum, enter 2
-
-In the Network settings for Amazon EC2 instances, configure the following options:
-
-VPC: choose Lab VPC.
-
-Subnets: Reconfirm that, all public subnets chosen.
-
-Security group: Choose Use an existing security group.
-
-Security group name dropdown list, select the security group that has ECSSG in the name.
-
-Clear the default security group.
-
-Choose Create.
-
-It takes a few minutes for the cluster to be created.
-
-Note: If you get an error message, choose a new cluster name e.g. mb-ecs-cluster-1 and retry the steps to create cluster process in a few minutes.
-
-Choose the cluster you created, e.g. mb-ecs-cluster. 
-
-The details page for mb-ecs-cluster is displayed. Notice that the Status shows a value of Active.
-
-Choose the Infrastructure tab.
-
-The Container instances pane shows that two EC2 instances for the cluster were created.
-
-Image shows the EC2 instance created as part of cluster creation
-
- 
-
-Task 4.2: Creating a task definition for the application container image
-A task definition is a list of configuration settings for how to run a Docker container on Amazon ECS. The following are examples of the information that a task definition provides to Amazon ECS:
-
-Which container image to run
-
-How much CPU and memory the container needs
-
-On which ports the container listens to traffic
-
-In this sub-task, you create a task definition for the container image of the message board application.
-
-On the Amazon ECS console, from the left menu, choose Task definitions.
-
-Choose Create new task definition, and configure the following options:
-
-In the Task definition configuration section, for Task definition family, enter mb-task
-
-In the Infrastructure requirements, select Amazon EC2 instances, and clear AWS Fargate.
-
-For the Task size, choose CPU: .5vCPU, Memory: 1GB
-
-For Task execution role, choose Create new role.
-
-In the Container - 1 section, configure the following options:
-
-For Container details, for Name, enter mb-container
-
-For Image URI, paste the URI of the users container image that you copied to a text editor earlier.
-
-For Port mappings, for Container port, enter 3000. This option specifies the port on which the container receives requests.
-
-Choose Create.
-
-A message is displayed at the top that says, "Task definition successfully created."
-
-You now have a task definition that tells Amazon ECS how to deploy your application container across the cluster.
-
-Task 4.3: Creating and deploying the service
-All of the required Amazon ECS infrastructure components are created, and you can now deploy the containerized monolithic application to the cluster as an Amazon ECS service.
-
-You can use Amazon ECS to run and maintain a specified number of instances of a task definition simultaneously in an Amazon ECS cluster. If one of the tasks fails or stops for any reason, the Amazon ECS service scheduler launches another instance of the task definition to replace it and maintains the desired number of tasks specified in the service.
-
-In this sub-task, you use the Amazon ECS console to create an Amazon ECS service for the message board application's task definition.
-
-On the same screen where you created mb-task, choose Deploy, then choose Create service
-
-In the Environment section, configure the following options:
-
-For Compute options, choose Launch type.
-
-For Launch type, choose EC2.
-
-For Service name choose mb-ecs-service
-
-Expand the Networking section, and configure the following options:
-
-For Security group, choose Use an existing security group.
-
-From the Security group name dropdown list, select the security group that has ECSSG in the name.
-
-Clear the default security group.
-
-Expand the Load balancing - optional section, and configure the following options:
-
-For Load balancer type, choose Application Load Balancer.
-
-For Application Load Balancer, choose Create a new load balancer.
-
-For Load balancer name, enter mb-load-balancer
-
-For Target group name, enter mb-target
-
-Choose Create.
-
-Wait for a few minutes for the service to create all the components.
-
-From the Services list, choose the service that you just created, mb-ecs-service. 
-
-It should show a Status of Active with one Task that's Running.
-
-In the Status section, choose View load balancer.
-
-Copy the DNS name for the load balancer, and paste it into a new browser tab.
-
-The browser page should display a message that says, "Ready to receive requests."
-
-Image shows the reponse from the load balancer
-
-You have successfully deployed the containerized monolith as an Amazon ECS service into the cluster.
-
-Also paste the DNS name into a text editor. You use it later in this lab.
-
-Task 4.4: Testing the containerized monolith
-You can now validate your deployment by testing the RESTful API methods of the message board application from a web browser.
-
-You need the DNS name of the load balancer that you used in the previous steps.
-
-Open a new browser tab, paste the DNS name into the address field, and press Enter.
-
-Enter the following addresses in the browser tab, and examine the results. For each address, replace DNS name with the DNS name from the previous steps.
-
-DNS name/api
-
-DNS name/api/users
-
-DNS name/api/threads
-
-DNS name/api/posts/in-thread/2    
-
-The returned results are similar to what you observed while running the application locally in the AWS Cloud9 IDE.
-
-Now that you have containerized the monolith application, you can refactor it.
-
- 
-
-Task 5: Refactoring the monolith
-In this task, you break the containerized monolithic message board application into several interconnected services and microservices and push each service's image to an Amazon ECR repository. Each microservice performs a single business capability of the application and can be scaled independently of the other microservices. Specifically, the application is divided into the following microservices, which represent the top-level classes of objects that the application's RESTful API serves:
-
-Users microservice: A service for all user-related REST paths (/api/users/*)
-
-Threads microservice: A service for all thread-related REST paths (/api/threads/*)
-
-Posts microservice: A service for all post-related REST paths (/api/posts/*)
-
-To expedite the refactoring task, a microservices version of the application is provided to you in the 3-containerized-microservices folder of your AWS Cloud9 environment.
-
-In this task, you perform the following steps:
-
-Review the refactored microservices application.
-
-Provision an Amazon ECR repository for each microservice.
-
-Build and push the images for each microservice.
-
-Task 5.1: Reviewing the refactored microservices application
-Take a few minutes to review the files and understand the changes that were made in order to refactor the application into microservices.
-
-Switch to the Cloud9-IDE - AWS Cloud9 browser tab.
-
-In the left pane, expand the 3-containerized-microservices folder. 
-
-Notice that there are now three separate sub-folders: posts, threads, and users. These folders represent the three application microservices. Each sub-folder contains the implementation files for the corresponding microservice.
-
-Expand the posts, threads, and users sub-folders.
-
-
-
-Notice that each sub-folder contains a copy of the same application files as those of the containerized monolith application. In fact, the db.json, Dockerfile, and package.json files in each sub-folder are identical to their containerized monolith counterparts. The only file that changed as a result of the re-factoring is server.js.
-
-In the posts sub-folder, double-click server.js to open it in an editor tab. The difference from the containerized monolith version is that the program defines only the RESTful API methods and implementation related to the posts resource paths (lines 13–21).
-
-In the threads sub-folder, double-click server.js to open it in an editor tab. The difference from the containerized monolith version is that the program defines only the RESTful API methods and implementation related to the threads resource paths (lines 13–20).
-
-In the users sub-folder, double-click server.js to open it in an editor tab. The difference from the containerized monolith version is that the program defines only the RESTful API methods and implementation related to the users resource paths (lines 13–20).
-
-In summary, the only change required to refactor the application was to split the RESTful API method handlers in the monolithic version of server.js into three separate server.js files. Each separate server.js file contains a relevant subset of the API method handlers.
-
-Task 5.2: Provisioning an ECR repository for each microservice
-Similarly to what you did for the containerized monolith version, you create an Amazon ECR repository for each of the application's microservices.
-
-In this task, you create a repository for the users, threads, and posts microservice container images.
-
-On the AWS Management Console, in the search box, enter and choose Elastic Container Registry
-
-From the menu on the left, choose Repositories, then choose Create repository.
-
-For Repository name, enter mb-users-repo
-
-Note: Ensure that under Visibility settings, Private is chosen.
-
-Choose Create repository. 
-
-A message is displayed at the top of the page indicating that the repository was successfully created.
-
-Repeat the steps in this sub-task to create a repository named mb-threads-repo for the threads microservice container image.
-
-Repeat the steps in this sub-task to create a repository named mb-posts-repo for the posts microservice container image.
-
-  When you have created the repositories for all three microservices, the Private repositories list looks like the following:
-
- Images shows the list of repositories available for use
-
-  
-
-Task 5.3: Building and pushing the images for each microservice
-Next, you build each microservice container image and push it to its corresponding repository. 
-
-In this sub-task, you use the ready-to-use commands provided by the Amazon ECR console to facilitate the task.
-
-Task 5.3.1: Building and pushing the image for the users microservice
-Switch to the Cloud9-IDE - AWS Cloud9 browser tab.
-
-In the terminal tab, to change directory to the 3-containerized-microservices/users folder, enter the following command:
-
+```bash
 cd ~/environment/3-containerized-microservices/users
-Switch to the Elastic Container Registry browser tab.
-
-From the Private repositories list, choose mb-users-repo.
-
-At the top of the page, choose View push commands. 
-
-A pop-up window titled Push commands for mb-users-repo opens.
-
-Next, you build the Docker image for the microservice.
-
-In the pop-up window, for the second command, choose the Copy icon to copy it to the clipboard. The command looks like the following:
-
 docker build -t mb-users-repo .
+docker tag mb-users-repo:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-users-repo:latest
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-users-repo:latest
+```
 
-Note: Make sure to include the period at the end of the command.
+#### Threads Microservice
 
-Run the copied command in the AWS Cloud9 terminal.
-
-When the command is finished, you see the messages similar to "Building 5.1s (9/9) FINISHED."
-
-Next, you tag the image with the repository URI so that it can be pushed to the repository.
-
-Switch to the Elastic Container Registry browser tab.
-
-In the pop-up window, for the third command, choose the Copy icon to copy it to the clipboard. The command looks like the following:
-
-docker tag mb-users-repo:latest 1234567890.dkr.ecr.us-east-1.amazonaws.com/mb-users-repo:latest
-
-Run the copied command in the AWS Cloud9 terminal. 
-
-The command returns to the prompt.
-
-Finally, you push the container image to the microservice's repository.
-
-Switch to the Elastic Container Registry browser tab.
-
-In the pop-up window, for the fourth command, choose the Copy icon to copy it to the clipboard. The command looks like the following:
-
-docker push 1234567890.dkr.ecr.us-east-1.amazonaws.com/mb-users-repo:latest
-
-Switch to the Cloud9-IDE - AWS Cloud9 browser tab.
-
-Run the copied command in the AWS Cloud9 terminal.
-
-The command outputs several messages as each layer of the image is pushed to the repository.
-
-	Next, you verify that the image was successfully uploaded.
-
-Switch to the Elastic Container Registry browser tab.
-
-In the Push commands for mb-users-repo pop-up box, choose Close.
-
-Choose Refresh. 
-
-In the Images list, you see the container image that you pushed, which is identified by the latest tag.
-
-Next, you record the image URI. 
-
-In the Images list, choose Copy URI for the Image URI of the latest version of the image. Paste the value into a text editor, and label it as the users image URI. You use it in a later step.
-
-Next, you build and push the container image for the threads microservice.
-
-Task 5.3.2: Building and pushing the image for the threads microservice
-In this sub-task, you use the following information and repeat the previous the steps in the previous task to build and push the image for the threads microservice.
-
-On the Cloud9-IDE - AWS Cloud9 tab, to change the directory to the 3-containerized-microservices/threads folder, enter the following command:
-
+```bash
 cd ~/environment/3-containerized-microservices/threads
-Switch to the Elastic Container Registry browser tab.
+docker build -t mb-threads-repo .
+docker tag mb-threads-repo:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-threads-repo:latest
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-threads-repo:latest
+```
 
-In the left navigation, choose Repositories, and choose mb-threads-repo.
+#### Posts Microservice
 
-At the top of the page, choose View push commands. 
-
-A pop-up window titled Push commands for mb-threads-repo opens.
-
-Repeat the steps from the previous task to do the following:
-
-Build the Docker image for the microservice.
-
-Tag the image with the repository URI so that it can be pushed to the repository. 
-
-Push the container image to the microservice's repository.
-
-After you have completed these steps for the threads microservice, you verify that the image was successfully uploaded.
-
-Switch to the Elastic Container Registry browser tab.
-
-In the Push commands for mb-threads-repo pop-up box, choose Close.
-
-Choose Refresh. 
-
-In the Images list, you see the container image that you pushed, which is identified by the latest tag.
-
-Next, you record the image URI. 
-
-In the Images list, choose Copy URI for the Image URI of the latest version of the image. Paste the value into a text editor, and label it as the threads image URI. You use it in a later step.
-
-Next, you build and push the container image for the posts microservice.
-
-Task 5.3.3: Building and pushing the image for the posts microservice
-In this sub-task, you use the following information and repeat the previous the steps in the previous task to build and push the image for the posts microservice. 
-
-On the Cloud9-IDE - AWS Cloud9 tab, to change the directory to the 3-containerized-microservices/posts folder, enter the following command:
-
+```bash
 cd ~/environment/3-containerized-microservices/posts
-Switch to the Elastic Container Registry browser tab.
+docker build -t mb-posts-repo .
+docker tag mb-posts-repo:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-posts-repo:latest
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/mb-posts-repo:latest
+```
 
-In the left navigation, choose Repositories, and choose mb-posts-repo.
+---
 
-At the top of the page, choose View push commands. 
+### ✅ Summary So Far
 
-A pop-up window titled Push commands for mb-posts-repo opens.
+* Monolith containerized and deployed to ECS.
+* Microservices version split into **users**, **threads**, **posts**.
+* Images built and pushed to ECR.
 
-Repeat the steps from the previous task to do the following:
 
-Build the Docker image for the microservice.
-
-Tag the image with the repository URI so that it can be pushed to the repository. 
-
-Push the container image to the microservice's repository.
-
-After you have completed these steps for the posts microservice, you verify that the image was successfully uploaded.
-
-Switch to the Elastic Container Registry browser tab.
-
-In the Push commands for mb-posts-repo pop-up box, choose Close.
-
-Choose Refresh. 
-
-In the Images list, you see the container image that you pushed, which is identified by the latest tag.
-
-Next, you record the image URI. 
-
-In the Images list, choose Copy URI for the Image URI of the latest version of the image. Paste the value into a text editor, and label it as the posts image URI. You use it in a later step.
-
-You have successfully built container images for the microservices in your application and pushed them to Amazon ECR.
-
- 
-
-Task 6: Deploying the containerized microservices
-In this task, you deploy the containerized microservices message board application to the same ECS cluster that you used for the containerized monolith. You also use the same Application Load Balancer that you used in previous tasks, but you configure it to route requests to different target groups (one for each microservice container) based on the request URI path.
-
-The following diagram shows the deployment architecture of the containerized microservices application. It also displays the resources that you create in this task.
-
-Image shows the microservice based architeciture of the application on the container after refactoring
-
-In this task, you perform the following steps:
-
-Create a task definition for each microservice.
-
-Deploy the microservices as Amazon ECS services.
-
-Validate the deployment.
-
-Task 6.1: Creating a task definition for each microservice
-Because the microservices in the application are intended to run independently of each other, they require their own task definition. In this sub-task, you create three task definitions that run the container image of each individual microservice.
-
-Task 6.1.1: Creating a task definition for the users microservice
-On the AWS Management Console, in the search box, enter and select Elastic Container Service 
-
-In the left navigation pane, choose Task definitions.
-
-Choose Create new task definition, and configure the following options:
-
-In the Task definition configuration section, for Task definition family, enter mb-users-task
-
-In the Infrastructure requirements, select Amazon EC2 instances, and clear AWS Fargate.
-
-For the Task size, choose CPU: .5 vCPU, Memory: 1GB
-
-In the Container - 1 section, configure the following options:
-
-For Container details, for Name, enter mb-users-container
-
-For Image URI, paste the URI of the users container image that you copied to a text editor earlier.
-
-For Port mappings, for Container port, enter 3000. This option specifies the port on which the container receives requests.
-
-Choose Create.
-
-A message is displayed at the top that says, "Task definition successfully created."
-
-Task 6.1.2: Creating a task definition for the posts microservice
-In the left navigation pane, choose Task definitions.
-
-Choose Create new task definition, and configure the following options:
-
-In the Task definition configuration section, for Task definition family, enter mb-posts-task
-
-For the Task size, choose CPU: .5 vCPU, Memory: 1GB
-
-For Container - 1, configure the following options:
-
-For Container details, for Name, enter mb-posts-container
-
-For Image URI, paste the URI of the posts container image that you copied to a text editor earlier.
-
-For Port mappings, for Container port, enter 3000. This option specifies the port on which the container receives requests.
-
-Choose Create.
-
-A message is displayed at the top that says, "Task definition successfully created."
-
- 
-
-Task 6.1.3: Creating a task definition for the threads microservice
-In the left navigation pane, choose Task definitions.
-
-Choose Create new task definition, and configure the following options:
-
-In the Task definition configuration section, for Task definition family, enter mb-threads-task
-
-For the Task size, choose CPU: .5 vCPU, Memory: 1GB
-
-For Container - 1, configure the following options:
-
-For Container details, for Name, enter mb-threads-container
-
-For Image URI, paste the URI of the threads container image that you copied to a text editor earlier.
-
-For Port mappings, for Container port, enter 3000. This option specifies the port on which the container receives requests.
-
-Choose Create.
-
-A message is displayed at the top that says, "Task definition successfully created."
-
-Task 6.2: Creating and deploying the services
-All of the required Amazon ECS infrastructure components are created, and you can now deploy the containerized monolithic application to the cluster as an Amazon ECS service.
-
-You can use Amazon ECS to run and maintain a specified number of instances of a task definition simultaneously in an Amazon ECS cluster. If one of the tasks fails or stops for any reason, the Amazon ECS service scheduler launches another instance of the task definition to replace it and maintains the desired number of tasks specified in the service.
-
-In this sub-task, you use the Amazon ECS console to create an Amazon ECS service for the message board application's task definition.
-
-Note: During the creation of following tasks, if you get an error similar to ~Circuit Breaker was triggered~, retry the task creation after few minutes. If the error persists, choose End Lab and start after some tiime. Also, provide the feedback about failures using the link provided at the end.
-
-In the left navigation pane, choose Clusters, and choose your mb-ecs-cluster cluster. 
-
-On the Services tab, choose Create, and configure the following options:
-
-In the Environment section, configure the following options:
-
-For Compute options, choose Launch type.
-
-For Launch type, choose EC2.
-
-In the Deployment configuration section, configure the following options: 
-
-For Application type, choose Service.
-
-For Family, chose mb-users-task. 
-
-For Service name, enter mb-users-service
-
-Expand the Networking section, and configure the following options:
-
-For Security group, choose Use an existing security group.
-
-From the Security group name dropdown list, select the security group that has ECSSG in the name.
-
-Clear the default security group.
-
-Expand the Load balancing - optional section, and configure the following options:
-
-For Load balancer type, choose Application Load Balancer.
-
-For Application Load Balancer, choose Use an existing load balancer.
-
-For Load balancer, choose mb-load-balancer.
-
-For Listener, choose Use an existing listener, and then choose 80:HTTP from the dropdown list.
-
-For Target group, choose Create new target group.
-
-For Target group name, enter mb-users-target
-
-For Path pattern, enter /api/users*
-
-For Evaluation order, enter 1
-
-Choose Create.
-
-Wait a few minutes for the service to create all the components.
-
-Return to your mb-ecs-cluster cluster. On the Services tab, choose Create, and configure the following options:
-
-In the Environment section, configure the following options:
-
-For Compute options, choose Launch type.
-
-For Launch type, choose EC2.
-
-In the Deployment configuration section, configure the following options: 
-
-For Application type, choose Service.
-
-For Family, choose mb-posts-task.
-
-For Service Name, enter mb-posts-service
-
-Expand the Networking section, and configure the following options:
-
-For Security group, choose Use an existing security group.
-
-From the Security group name dropdown list, select the security group that has ECSSG in the name.
-
-Clear the default security group.
-
-Expand the Load balancing section, and configure the following options:
-
-For Load balancer type, choose Application Load Balancer.
-
-For Application Load Balancer, choose Use an existing load balancer.
-
-For Load balancer, choose mb-load-balancer.
-
-For Listener, choose Use an existing listener, and then choose 80:HTTP from the dropdown list.
-
-For Target group, choose Create new target group.
-
-For Target group name, enter mb-posts-target
-
-For Path pattern, enter /api/posts*
-
-For Evaluation order, enter 2
-
-Choose Create.
-
-Wait a few minutes for the service to create all the components.
-
-Return to your mb-ecs-cluster cluster. On the Services tab, choose Create, and configure the following options:
-
-In the Environment section, configure the following options:
-
-For Compute options, choose Launch type.
-
-For Launch type, choose EC2.
-
-In the Deployment configuration section, configure the following options: 
-
-For Application type, choose Service.
-
-For Family, choose mb-threads-task.
-
-For Service Name, enter mb-threads-service
-
-Expand the Networking section, and configure the following options:
-
-For Security group, choose Use an existing security group.
-
-From the Security group name dropdown list, select the security group that has ECSSG in the name.
-
-Clear the default security group.
-
-Expand the Load balancing section, and configure the following options:
-
-For Load balancer type, choose Application Load Balancer.
-
-For Application Load Balancer, choose Use an existing load balancer.
-
-For Load balancer, choose mb-load-balancer.
-
-For Listener, choose Use an existing listener, and then choose 80:HTTP from the dropdown list.
-
-For Target group, choose Create new target group.
-
-For Target group name, enter mb-threads-target
-
-For Path pattern, enter /api/threads*
-
-For Evaluation order, enter 3
-
-Choose Create.
-
-Wait a few minutes for the service to create all the components.
-
-Return to the Clusters menu on the ECS console, and choose mb-ecs-cluster.
-
-On the Services menu, choose any service you created, go to view load balancer.
-
-For mb-load-balancer, on the Listeners and rules tab, choose HTTP:80.
-
-Under the Listener rules notice the rules similar to the following:
-
-Image shows Application load balaner listener rules
-
-Notice that the requests are forwarded to the respective groups, and a default rule forwards the request to the mb-target that was created before refactoring. You modify this rule provide a different "Invalid request~.." message in case the requests do not match the desired URL path. 
-
-Choose the Default rule, then choose Actions and Edit rule.
-
-Under the Routing actions, choose Forward to target groups.
-
-For Target group choose mb-users-target.
-
-Choose Save changes.
-
-Notice the new rules as per following, all requests are routed to mb-users-target if request parameters are not specified.
-
-Image shows modified listener rules
-
-Return to the Clusters menu on the ECS console, and choose mb-ecs-cluster.
-
-On the Services tab, select mb-ecs-service, and choose Update.
-
-On the Update mb-ecs-service page, for Desired tasks, enter 0
-
-Choose Update.
-
-The service should not be running any tasks now. The original monolithic container has been stopped, and all requests will be serviced by three services individually.
-
-On the Amazon ECS browser tab, return to your mb-ecs-cluster cluster.
-
-Notice the services and tasks that are running.
-
-Image shows all services containerized in a cluster
-
-All tasks  
-
- 
-
-Task 6.3: Validating the deployment
-You can now test the RESTful API methods of the message board application from a web browser and validate that the microservices-based implementation works correctly.
-
-Before testing, shut down the Amazon ECS service for the containerized monolith version of the application. Make sure that it will no longer serve any requests.
-
-Open a new browser tab. In the address field, enter the load balancer DNS name that you pasted into a text editor earlier, and press Enter.
-
-A page is returned with a message that says, "Ready to receive requests." This is the message that the application returns when no resource path is included in the GET request. Recall from the listener rules configuration that this type of request is sent for processing to the users microservice.
-
-In the browser address bar, to the end of the URL, add /api and press Enter.
-
-The message "API ready to receive requests" is returned by the application, specifically the users microservice.
-
-Next, you test additional URLs.
-
-In the browser address bar, enter the following addresses in the browser tab, and examine the results. For each address, replace DNS name wit the DNS name that you copied to a text editor earlier.
-
-DNS name/api/users
-
-Expected output: List of users
-
-DNS name/api/users/2
-
-Expected output: Details of user 2
-
-DNS name/api/threads
-
-Expected output: List of threads
-
-DNS name/api/posts/in-thread/2
-
-Expected output: Details of thread 2 
-
-DNS name/xxx
-
-Expected output: Invalid request
-
-Conclusion
-Congratulations! You now have successfully done the following:
-
-Migrated a monolithic Node.js application to run in a Docker container
-
-Refactored a Node.js application from a monolithic design to a microservices architecture
-
-Deployed a containerized Node.js microservices application to Amazon ECS
-
-Submitting your work
-At the top of these instructions, choose Submit to record your progress, and when prompted, choose Yes.
-
-If the results don't display after a couple of minutes, return to the top of these instructions and choose Grades.
-
- Tip: You can submit your work multiple times. After you change your work, choose Submit again. Your last submission is what will be recorded for this lab.
-
-To find detailed feedback on your work, choose Submission Report.
-
-Lab complete 
-At the top of this page, choose End Lab and then choose Yes to confirm that you want to end the lab. 
-
-	The message "Ended AWS Lab Successfully" is briefly displayed, indicating that the lab has ended.
-
-For more information about AWS Training and Certification, see AWS Training and Certification.
-
-Your feedback is welcome and appreciated.
-
-If you would like to share any suggestions or corrections, provide the details in the AWS Training and Certification Contact Form.
