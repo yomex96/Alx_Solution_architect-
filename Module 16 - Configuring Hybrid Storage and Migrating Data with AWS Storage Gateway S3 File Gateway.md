@@ -1,4 +1,6 @@
-**“Configuring Hybrid Storage and Migrating Data with AWS Storage Gateway S3 File Gateway”** lab, including the tasks, concepts, and key outcomes:
+**“Configuring Hybrid Storage and Migrating Data with AWS Storage Gateway S3 File Gateway”** 
+
+lab, including the tasks, concepts, and key outcomes:
 
 
 
