@@ -1,8 +1,7 @@
- **concise, Markdown-formatted summary** of your guided lab on implementing a serverless architecture on AWS:
-
-
 
 # Guided Lab: Implementing a Serverless Architecture on AWS
+
+ **concise, Markdown-formatted summary** of your guided lab on implementing a serverless architecture on AWS:
 
 ## Lab Overview
 
