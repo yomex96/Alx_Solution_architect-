@@ -1,6 +1,3 @@
-Here’s a structured **Markdown version** of the Challenge Lab you shared, organized with headings, subheadings, and bullet points for clarity:
-
-
 # Challenge Lab: Automating Infrastructure Deployment
 
 ## Scenario
