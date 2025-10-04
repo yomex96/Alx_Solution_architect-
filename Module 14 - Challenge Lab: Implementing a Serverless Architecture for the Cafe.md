@@ -1,7 +1,8 @@
 
- **concise, Markdown-formatted summary** of the **Challenge Lab: Implementing a Serverless Architecture for the Café**:
-
 # Challenge Lab: Serverless Daily Sales Report for the Café
+
+
+ **concise, Markdown-formatted summary** of the **Challenge Lab: Implementing a Serverless Architecture for the Café**:
 
 ## Lab Overview
 
