@@ -1,6 +1,7 @@
- **concise, organized Markdown version** of your lab guide so far. I’ve structured it for clarity, keeping headings, subheadings, and step sequences intact for easy reading and reference. You can continue adding Task 6 steps similarly.
 
 # Guided Lab: Breaking a Monolithic Node.js Application into Microservices
+
+ **concise, organized Markdown version** of your lab guide so far. I’ve structured it for clarity, keeping headings, subheadings, and step sequences intact for easy reading and reference. You can continue adding Task 6 steps similarly.
 
 ## Overview
 
