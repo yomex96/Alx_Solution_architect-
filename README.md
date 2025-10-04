@@ -12,6 +12,9 @@ The project focuses on **Infrastructure as Code (IaC), cloud architecture best p
 
 ---
 
+# Project: Highly Available PHP Web Application on AWS
+
+
 ## Project Modules and Highlights
 
 ### **Module 3 – Identity and Access Management**
